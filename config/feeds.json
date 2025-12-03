@@ -1,0 +1,51 @@
+{
+  "feeds": [
+    {
+      "category": "Global Tech & Business",
+      "sources": [
+        { "name": "Financial Times - AI", "url": "https://www.ft.com/artificial-intelligence?format=rss" },
+        { "name": "The New York Times - AI", "url": "https://www.nytimes.com/svc/collections/v1/publish/www.nytimes.com/spotlight/artificial-intelligence/rss.xml" },
+        { "name": "The Guardian - AI", "url": "https://www.theguardian.com/technology/artificialintelligenceai/rss" },
+        { "name": "WIRED - AI", "url": "https://www.wired.com/feed/tag/ai/latest/rss" },
+        { "name": "Science News - AI", "url": "https://www.sciencenews.org/topic/artificial-intelligence/feed" }
+      ]
+    },
+    {
+      "category": "Tech, Startups & VC",
+      "sources": [
+        { "name": "VentureBeat - AI", "url": "https://venturebeat.com/category/ai/feed/" },
+        { "name": "TechCrunch - AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/" },
+        { "name": "Crunchbase News - AI", "url": "https://news.crunchbase.com/sections/ai/feed/" },
+        { "name": "The Verge - AI", "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml" },
+        { "name": "Fast Company - AI", "url": "https://www.fastcompany.com/section/artificial-intelligence/rss" }
+      ]
+    },
+    {
+      "category": "Cloud & Big Tech AI Platforms",
+      "sources": [
+        { "name": "OpenAI Blog", "url": "https://openai.com/blog/rss.xml" },
+        { "name": "Microsoft AI", "url": "https://news.microsoft.com/source/topics/ai/feed/" },
+        { "name": "AWS News Blog - AI", "url": "https://aws.amazon.com/blogs/aws/category/artificial-intelligence/feed/" },
+        { "name": "Google Research Blog", "url": "https://research.google/blog/rss/" }
+      ]
+    },
+    {
+      "category": "Enterprise AI Platforms & Solutions",
+      "sources": [
+        { "name": "DataRobot Blog", "url": "https://www.datarobot.com/blog/feed/" },
+        { "name": "Clarifai Blog", "url": "https://clarifai.com/blog/rss.xml" },
+        { "name": "Kore.ai Blog", "url": "https://blog.kore.ai/rss.xml" },
+        { "name": "Vectra AI Blog", "url": "https://vectra.ai/blog/rss.xml" }
+      ]
+    },
+    {
+      "category": "Marketing, Sales & CX Automation",
+      "sources": [
+        { "name": "Marketing AI Institute", "url": "https://www.marketingaiinstitute.com/blog/rss.xml" },
+        { "name": "Top Marketing AI", "url": "https://topmarketingai.com/feed/" },
+        { "name": "Bigly Sales Blog", "url": "https://biglysales.com/blog/feed" }
+      ]
+    }
+  ]
+}
+

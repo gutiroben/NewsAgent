@@ -2,16 +2,13 @@ import sys
 import os
 from src.collector import NewsCollector
 from src.summarizer import NewsAnalyst
-from dotenv import load_dotenv
-
-# 로컬 실행 시 .env 로드 (GitHub Actions에서는 무시됨)
-load_dotenv()
+from config import settings
 
 def main():
     print("=== NewsAgent Started ===")
     
     # 0. 환경변수 체크
-    if not os.getenv("GEMINI_API_KEY"):
+    if not settings.GEMINI_API_KEY:
         print("Error: GEMINI_API_KEY is missing.")
         sys.exit(1)
     

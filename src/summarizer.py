@@ -1,23 +1,20 @@
-import os
 import json
 import time
 import google.generativeai as genai
-from dotenv import load_dotenv
 from typing import List, Dict, Any
-
-load_dotenv()
+from config import settings
 
 class NewsAnalyst:
     """
     뉴스를 5개씩 묶어서 상세 요약 및 분석을 수행하는 역할
     """
     def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = settings.GEMINI_API_KEY
         if not api_key:
             # GitHub Actions 등에서는 환경변수로 바로 들어올 수 있음
             pass 
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
 
     def analyze_batch(self, news_batch: List[Dict]) -> List[Dict]:
         """

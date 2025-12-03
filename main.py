@@ -1,7 +1,9 @@
 import sys
 import os
+from datetime import datetime
 from src.collector import NewsCollector
 from src.summarizer import NewsAnalyst, NewsCurator, ReportBuilder
+from src.sender import EmailSender
 from config import settings
 
 def main():
@@ -10,6 +12,9 @@ def main():
     # 0. 환경변수 체크
     if not settings.GEMINI_API_KEY:
         print("Error: GEMINI_API_KEY is missing.")
+        sys.exit(1)
+    if not settings.EMAIL_SENDER or not settings.EMAIL_PASSWORD:
+        print("Error: Email credentials are missing.")
         sys.exit(1)
     
     # 1. News Collection
@@ -74,6 +79,19 @@ def main():
         
     except Exception as e:
         print(f"Error during HTML building: {e}")
+        sys.exit(1)
+
+    # 5. Send Email
+    print("\n[Step 5] Sending Email...")
+    try:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        subject = f"📢 [NewsAgent] 오늘의 AI 트렌드 리포트 ({today_str})"
+        
+        sender = EmailSender()
+        sender.send_email(settings.EMAIL_RECIPIENT, subject, html_content)
+        
+    except Exception as e:
+        print(f"Error during email sending: {e}")
         sys.exit(1)
 
     print("\n=== NewsAgent Finished ===")

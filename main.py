@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from src.collector import NewsCollector
 from src.summarizer import NewsAnalyst, NewsCurator, ReportBuilder
+from src.pdf_builder import PDFBuilder
 from src.sender import EmailSender
 from config import settings
 
@@ -38,7 +39,6 @@ def main():
     analyzed_news = []
     try:
         analyst = NewsAnalyst()
-        # 테스트를 위해 너무 많으면 자르거나 전체 수행 (현재는 전체)
         analyzed_news = analyst.analyze_all(news_list, batch_size=5)
         print(f"\nSuccessfully analyzed {len(analyzed_news)} items.")
             
@@ -56,29 +56,28 @@ def main():
         print(f"\nSelected {len(topics)} Top Topics:")
         for idx, topic in enumerate(topics):
             print(f"  [{idx+1}] {topic.get('topic_title')}")
-            print(f"      Reason: {topic.get('topic_reason')}")
-            print(f"      Articles: {len(topic.get('related_news_indices', []))} items")
             
     except Exception as e:
         print(f"Error during curation: {e}")
-        # 큐레이션 실패해도 전체 리스트라도 보내야 하므로 진행 가능하지만,
-        # 여기서는 에러 로그 찍고 빈 토픽으로 진행
+        # 계속 진행 (빈 토픽 리스트)
 
-    # 4. Report Building (HTML)
-    print("\n[Step 4] Building HTML Report...")
+    # 4. Report Building (HTML & PDF)
+    print("\n[Step 4] Building Report (HTML & PDF)...")
     html_content = ""
+    pdf_filename = "NewsAgent_Report.pdf"
     try:
+        # 4-1. HTML (Top 5 Only)
         builder = ReportBuilder()
         html_content = builder.build_html(topics, analyzed_news)
+        print("HTML Generated Successfully.")
         
-        print("\nHTML Generated Successfully.")
-        print("--- HTML Preview (First 500 chars) ---")
-        print(html_content[:500])
-        print("...")
-        print("--------------------------------------")
+        # 4-2. PDF (Full Report)
+        pdf_builder = PDFBuilder()
+        pdf_builder.build_pdf(topics, analyzed_news, pdf_filename)
+        print(f"PDF Generated Successfully: {pdf_filename}")
         
     except Exception as e:
-        print(f"Error during HTML building: {e}")
+        print(f"Error during report building: {e}")
         sys.exit(1)
 
     # 5. Send Email
@@ -88,7 +87,8 @@ def main():
         subject = f"📢 [NewsAgent] 오늘의 AI 트렌드 리포트 ({today_str})"
         
         sender = EmailSender()
-        sender.send_email(settings.EMAIL_RECIPIENT, subject, html_content)
+        # PDF 파일 첨부하여 발송
+        sender.send_email(settings.EMAIL_RECIPIENT, subject, html_content, attachment_path=pdf_filename)
         
     except Exception as e:
         print(f"Error during email sending: {e}")

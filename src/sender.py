@@ -1,17 +1,19 @@
 import smtplib
+import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from datetime import datetime
 from config import settings
 
 class EmailSender:
     def __init__(self):
-        self.smtp_server = "smtp.gmail.com"
-        self.smtp_port = 587
+        self.smtp_server = settings.SMTP_SERVER if hasattr(settings, 'SMTP_SERVER') else "smtp.gmail.com"
+        self.smtp_port = settings.SMTP_PORT if hasattr(settings, 'SMTP_PORT') else 587
         self.sender_email = settings.EMAIL_SENDER
         self.password = settings.EMAIL_PASSWORD
         
-    def send_email(self, recipient_email, subject, html_content):
+    def send_email(self, recipient_email, subject, html_content, attachment_path=None):
         if not self.sender_email or not self.password:
             raise ValueError("Email credentials are missing in settings.")
 
@@ -24,6 +26,16 @@ class EmailSender:
             
             # 본문 추가 (HTML)
             msg.attach(MIMEText(html_content, 'html'))
+            
+            # 파일 첨부 (PDF)
+            if attachment_path and os.path.exists(attachment_path):
+                with open(attachment_path, "rb") as f:
+                    part = MIMEApplication(f.read(), Name=os.path.basename(attachment_path))
+                
+                # 헤더 설정 (파일 이름 등)
+                part['Content-Disposition'] = f'attachment; filename="{os.path.basename(attachment_path)}"'
+                msg.attach(part)
+                print(f"Attached file: {attachment_path}")
             
             # SMTP 서버 연결
             print(f"Connecting to SMTP server ({self.smtp_server})...")
@@ -38,4 +50,5 @@ class EmailSender:
         except Exception as e:
             print(f"Failed to send email: {e}")
             raise e
+
 

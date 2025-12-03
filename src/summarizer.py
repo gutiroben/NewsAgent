@@ -258,35 +258,17 @@ class ReportBuilder:
                     """
             html += "</div>"
 
-        # Category Section (Remaining News)
+        # Category Section 삭제 (HTML에서는 Top 5만 보여줌)
+        # 대신 PDF 안내 문구 추가
         html += """
-            <div class="section-title">
-                <span>📂</span> More News by Category
+            <div style="margin-top: 40px; padding: 20px; background-color: #edf2f7; border-radius: 8px; text-align: center;">
+                <h3 style="margin: 0 0 10px 0; color: #2d3748;">📎 전체 리포트 확인</h3>
+                <p style="margin: 0; color: #4a5568; font-size: 14px;">
+                    나머지 <strong>전체 뉴스 리스트와 상세 내용</strong>은<br>
+                    함께 첨부된 <strong>PDF 파일</strong>을 확인해주세요.
+                </p>
             </div>
         """
-        
-        # Group remaining news by category
-        news_by_category = {}
-        for idx, news in enumerate(all_news):
-            if idx not in used_indices:
-                cat = news.get('category', 'Others')
-                if cat not in news_by_category:
-                    news_by_category[cat] = []
-                news_by_category[cat].append(news)
-        
-        for category, news_list in news_by_category.items():
-            if not news_list: continue
-            
-            html += f'<div class="category-header">{category}</div>'
-            
-            for news in news_list:
-                html += f"""
-                <div class="category-article">
-                    <a href="{news['link']}" class="category-article-title" target="_blank">{news.get('title_korean', news['title'])}</a>
-                    <div class="category-article-meta">{news.get('source', '')}</div>
-                    <div class="category-article-summary">{news.get('one_line_summary', '')}</div>
-                </div>
-                """
 
         # Footer
         html += """

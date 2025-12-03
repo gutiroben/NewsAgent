@@ -1,7 +1,7 @@
 import sys
 import os
 from src.collector import NewsCollector
-from src.summarizer import NewsAnalyst
+from src.summarizer import NewsAnalyst, NewsCurator, ReportBuilder
 from config import settings
 
 def main():
@@ -14,10 +14,10 @@ def main():
     
     # 1. News Collection
     print("\n[Step 1] Collecting News...")
+    news_list = []
     try:
         collector = NewsCollector()
         news_list = collector.collect() # 기본 24시간
-        
         print(f"\nTotal News Collected: {len(news_list)}")
         
         if not news_list:
@@ -29,25 +29,51 @@ def main():
         sys.exit(1)
 
     # 2. News Analysis
-    print("\n[Step 2] Analyzing News (Gemini Pro)...")
+    print("\n[Step 2] Analyzing News (Gemini)...")
+    analyzed_news = []
     try:
         analyst = NewsAnalyst()
-        # GitHub Actions 시간 제한 및 API 할당량 고려하여 
-        # 너무 많으면 앞에서 자르거나 그대로 다 넣음. (Batch 처리가 되어있으므로 안전)
-        # 테스트 단계이므로 로그를 위해 개수 제한을 두지 않음.
-        
+        # 테스트를 위해 너무 많으면 자르거나 전체 수행 (현재는 전체)
         analyzed_news = analyst.analyze_all(news_list, batch_size=5)
         print(f"\nSuccessfully analyzed {len(analyzed_news)} items.")
-        
-        # 분석 결과 미리보기 (상위 3개)
-        print("\n--- Analysis Result Preview ---")
-        for item in analyzed_news[:3]:
-            print(f"\n[Title] {item.get('title_korean', item['title'])}")
-            print(f"[Summary] {item.get('one_line_summary', 'N/A')}")
-            print(f"[Points] {item.get('analysis', 'N/A')}")
             
     except Exception as e:
         print(f"Error during analysis: {e}")
+        sys.exit(1)
+
+    # 3. News Curation (Top Topics)
+    print("\n[Step 3] Curating Top Topics...")
+    topics = []
+    try:
+        curator = NewsCurator()
+        topics = curator.select_top_topics(analyzed_news)
+        
+        print(f"\nSelected {len(topics)} Top Topics:")
+        for idx, topic in enumerate(topics):
+            print(f"  [{idx+1}] {topic.get('topic_title')}")
+            print(f"      Reason: {topic.get('topic_reason')}")
+            print(f"      Articles: {len(topic.get('related_news_indices', []))} items")
+            
+    except Exception as e:
+        print(f"Error during curation: {e}")
+        # 큐레이션 실패해도 전체 리스트라도 보내야 하므로 진행 가능하지만,
+        # 여기서는 에러 로그 찍고 빈 토픽으로 진행
+
+    # 4. Report Building (HTML)
+    print("\n[Step 4] Building HTML Report...")
+    html_content = ""
+    try:
+        builder = ReportBuilder()
+        html_content = builder.build_html(topics, analyzed_news)
+        
+        print("\nHTML Generated Successfully.")
+        print("--- HTML Preview (First 500 chars) ---")
+        print(html_content[:500])
+        print("...")
+        print("--------------------------------------")
+        
+    except Exception as e:
+        print(f"Error during HTML building: {e}")
         sys.exit(1)
 
     print("\n=== NewsAgent Finished ===")

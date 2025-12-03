@@ -6,27 +6,15 @@ from datetime import datetime, timedelta, timezone
 from time import mktime
 
 class NewsCollector:
-    def __init__(self, config_path='config/feeds.json', db_path='data/history.db'):
+    def __init__(self, config_path='config/feeds.json'):
         self.config_path = config_path
-        self.db_path = db_path
-        self.conn = None
-        self._init_db()
+        # DB 관련 초기화 제거 (GitHub Actions 환경에서는 일회성 실행이므로)
+        # self.db_path = db_path
+        # self.conn = None
+        # self._init_db()
 
-    def _init_db(self):
-        """데이터베이스 초기화: 이미 처리한 뉴스 링크를 저장할 테이블 생성"""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self.conn = sqlite3.connect(self.db_path)
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS news_history (
-                link TEXT PRIMARY KEY,
-                title TEXT,
-                published_at TEXT,
-                collected_at TEXT
-            )
-        ''')
-        self.conn.commit()
-
+    # def _init_db(self): ... (Removed)
+    
     def _load_feeds(self):
         """설정 파일에서 피드 목록 로드"""
         if not os.path.exists(self.config_path):
@@ -35,34 +23,20 @@ class NewsCollector:
         with open(self.config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _is_processed(self, link):
-        """이미 수집된 링크인지 확인"""
-        cursor = self.conn.cursor()
-        cursor.execute('SELECT 1 FROM news_history WHERE link = ?', (link,))
-        return cursor.fetchone() is not None
+    # def _is_processed(self, link): ... (Removed)
+    # def _save_to_history(self, link, title, published_at): ... (Removed)
 
-    def _save_to_history(self, link, title, published_at):
-        """수집된 뉴스 이력 저장"""
-        cursor = self.conn.cursor()
-        try:
-            cursor.execute('''
-                INSERT INTO news_history (link, title, published_at, collected_at)
-                VALUES (?, ?, ?, ?)
-            ''', (link, title, published_at, datetime.now().isoformat()))
-            self.conn.commit()
-        except sqlite3.IntegrityError:
-            pass # 이미 존재하는 경우 무시
-
-    def collect(self):
+    def collect(self, lookback_hours=24):
         """
-        모든 피드를 순회하며 새로운 뉴스를 수집
-        RSS 피드 자체가 최근 N개를 제공하므로 시간 필터링 없이
-        DB 중복 체크만으로 수집 여부를 결정함.
+        모든 피드를 순회하며 최근 N시간 이내의 뉴스를 수집
+        GitHub Actions 환경에 맞춰 DB 중복 체크 대신 시간 기반 필터링 사용
         """
         feed_config = self._load_feeds()
         collected_news = []
         
-        print("Checking for new news items...")
+        # 비교 기준 시간 (현재 시간 - lookback_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
+        print(f"Checking news since: {cutoff_time}")
 
         for category_group in feed_config['feeds']:
             category = category_group['category']
@@ -83,30 +57,34 @@ class NewsCollector:
                         if not link:
                             continue
                             
-                        # 이미 DB에 있으면 건너뜀
-                        if self._is_processed(link):
-                            continue
-
-                        # 날짜 파싱 (옵션) - 정렬이나 표기용으로만 사용
-                        published_at = datetime.now().isoformat() # 기본값
+                        # 날짜 파싱 및 시간 필터링
+                        is_recent = False
+                        published_at = datetime.now(timezone.utc).isoformat()
+                        
                         if hasattr(entry, 'published_parsed') and entry.published_parsed:
                             dt = datetime.fromtimestamp(mktime(entry.published_parsed), timezone.utc)
                             published_at = dt.isoformat()
+                            if dt > cutoff_time:
+                                is_recent = True
+                        else:
+                            # 날짜 정보가 없으면 일단 가져오거나(True), 스킵(False)
+                            # 여기서는 안전하게 스킵하거나, 최근 5개만 가져오는 로직을 추가할 수 있음.
+                            # 이번에는 날짜 없으면 스킵으로 처리
+                            pass
 
-                        # 무조건 수집 목록에 추가 (DB에 없는 새로운 뉴스이므로)
-                        news_item = {
-                            'category': category,
-                            'source': source_name,
-                            'title': entry.get('title', 'No Title'),
-                            'link': link,
-                            'published_at': published_at,
-                            'summary': entry.get('summary', '')
-                        }
-                        collected_news.append(news_item)
-                        self._save_to_history(link, news_item['title'], news_item['published_at'])
-                        new_count += 1
+                        if is_recent:
+                            news_item = {
+                                'category': category,
+                                'source': source_name,
+                                'title': entry.get('title', 'No Title'),
+                                'link': link,
+                                'published_at': published_at,
+                                'summary': entry.get('summary', '')
+                            }
+                            collected_news.append(news_item)
+                            new_count += 1
                     
-                    print(f"Done. ({new_count}/{total_entries} new items)")
+                    print(f"Done. ({new_count}/{total_entries} recent items)")
                     
                 except Exception as e:
                     print(f"Error: {e}")
@@ -114,8 +92,7 @@ class NewsCollector:
         return collected_news
 
     def close(self):
-        if self.conn:
-            self.conn.close()
+        pass
 
 # 테스트 실행
 if __name__ == "__main__":

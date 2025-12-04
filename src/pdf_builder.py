@@ -110,9 +110,23 @@ class PDFBuilder:
         cat_idx = 0
         for category, news_list in news_by_category.items():
             if not news_list: continue
-            # Link to Anchor 'CAT_{cat_idx}'
-            cat_link = f"<a href='#CAT_{cat_idx}' color='black'>📌 {category}</a>"
-            story.append(Paragraph(cat_link, self.styles['TOCEntry']))
+            
+            # Category Title
+            clean_cat = category.replace('&', '&amp;')
+            story.append(Paragraph(f"📌 {clean_cat}", self.styles['Heading2Korean']))
+            
+            # Article Titles in TOC
+            for art_idx, news in enumerate(news_list):
+                title = news.get('title_korean', news['title'])
+                # Link to Anchor 'CAT_{cat_idx}_ART_{art_idx}'
+                # 제목이 길면 자르기
+                if len(title) > 60: title = title[:60] + "..."
+                clean_title = title.replace('&', '&amp;')
+                
+                link_text = f"<a href='#CAT_{cat_idx}_ART_{art_idx}' color='black'>• {clean_title}</a>"
+                story.append(Paragraph(link_text, self.styles['TOCEntry']))
+                
+            story.append(Spacer(1, 10))
             cat_idx += 1
 
         story.append(PageBreak())
@@ -139,12 +153,13 @@ class PDFBuilder:
         for category, news_list in news_by_category.items():
             if not news_list: continue
             
-            # Set Anchor 'CAT_{cat_idx}'
-            cat_anchor = f'<a name="CAT_{cat_idx}"/>'
-            story.append(Paragraph(f"{cat_anchor}📌 {category}", self.styles['Heading1Korean']))
+            clean_cat = category.replace('&', '&amp;')
+            story.append(Paragraph(f"📌 {clean_cat}", self.styles['Heading1Korean']))
             
-            for news in news_list:
-                self._add_article_to_story(story, news, is_simple=False)
+            for art_idx, news in enumerate(news_list):
+                # Set Anchor 'CAT_{cat_idx}_ART_{art_idx}'
+                anchor_tag = f'<a name="CAT_{cat_idx}_ART_{art_idx}"/>'
+                self._add_article_to_story(story, news, is_simple=False, anchor=anchor_tag)
                 story.append(Spacer(1, 20))
             
             story.append(PageBreak())

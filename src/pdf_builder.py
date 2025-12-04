@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from typing import List, Dict
 from reportlab.lib import colors
@@ -150,8 +151,6 @@ class PDFBuilder:
         doc.build(story)
         print(f"PDF Generated: {output_filename}")
         return output_filename
-
-import re
 
     def _clean_markdown(self, text):
         """Markdown 문법을 ReportLab이 이해할 수 있는 HTML 태그로 변환"""

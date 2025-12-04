@@ -16,6 +16,7 @@ class NewsCurator:
     def select_top_articles(self, analyzed_news: List[Dict]) -> List[Dict]:
         """
         분석된 뉴스 리스트를 받아 Top 5 기사 선정
+        삼성전자 MX 사업부 B2B 개발그룹 관점에서 주목할 만한 기사 선정
         """
         if not analyzed_news:
             return []
@@ -28,23 +29,25 @@ class NewsCurator:
             input_text += f"[{idx}] {title} : {summary}\n"
 
         prompt = f"""
-        You are the Chief Editor of an AI News Letter.
-        Below is a list of today's AI news headlines and summaries.
+        당신은 삼성전자 MX 사업부 B2B 개발그룹의 전략 분석가입니다.
+        아래는 오늘 수집된 AI 관련 뉴스들의 분석 결과입니다.
         
-        Your task is to select the **Top 5 Most Important Articles** that represent today's key AI trends.
-        Do NOT group them. Just select the 5 specific articles.
+        **삼성전자 MX 사업부 B2B 개발그룹 관점에서 주목해야 할 Top 5 기사**를 선정해주세요.
+        B2B 비즈니스, 엔터프라이즈 솔루션, 개발자 도구, 기업용 AI 서비스 등과 관련된 이슈를 우선적으로 고려하세요.
+        단, 일반적인 AI 트렌드도 중요하다면 포함할 수 있습니다.
         
-        Output must be a valid JSON list.
-        Format:
+        반드시 5개의 구체적인 기사를 선택하세요. 그룹화하지 마세요.
+        
+        출력 형식은 반드시 유효한 JSON 리스트여야 합니다:
         [
             {{
                 "article_index": 0,  // Integer
-                "selection_reason": "Why this article is selected (in Korean)"
+                "selection_reason": "B2B 개발그룹 관점에서 왜 이 기사가 중요한지 설명 (한국어, 2-3문장)"
             }},
             ...
         ]
         
-        News List:
+        뉴스 목록:
         {input_text}
         """
         

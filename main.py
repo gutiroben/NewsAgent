@@ -50,8 +50,8 @@ def main():
         print(f"Error during analysis: {e}")
         sys.exit(1)
 
-    # 3. News Curation (Top Articles)
-    print("\n[Step 3] Curating Top Articles...")
+    # 3. News Curation (Top Articles) - B2B 관점
+    print("\n[Step 3] Curating Top Articles (Samsung MX B2B Dev Group Perspective)...")
     top5_articles = []
     try:
         curator = NewsCurator()
@@ -66,19 +66,32 @@ def main():
         print(f"Error during curation: {e}")
         # 계속 진행 (빈 토픽 리스트)
 
+    # 3.5. B2B Insights Analysis (Top5 기반)
+    print("\n[Step 3.5] Analyzing B2B Insights from Top 5 Articles...")
+    b2b_insights = {}
+    try:
+        from src.b2b_insights import B2BInsightsAnalyzer
+        insights_analyzer = B2BInsightsAnalyzer()
+        b2b_insights = insights_analyzer.analyze_insights(top5_articles)
+        print("B2B Insights Generated Successfully.")
+        
+    except Exception as e:
+        print(f"Error during B2B insights analysis: {e}")
+        # 계속 진행 (빈 인사이트)
+
     # 4. Report Building (HTML & PDF)
     print("\n[Step 4] Building Report (HTML & PDF)...")
     html_content = ""
     pdf_filename = "NewsAgent_Report.pdf"
     try:
-        # 4-1. HTML (Top 5 Only)
+        # 4-1. HTML (B2B Insights + Top 5)
         builder = ReportBuilder()
-        html_content = builder.build_html(top5_articles, analyzed_news)
+        html_content = builder.build_html(top5_articles, analyzed_news, b2b_insights)
         print("HTML Generated Successfully.")
         
         # 4-2. PDF (Full Report with TOC)
         pdf_builder = PDFBuilder()
-        pdf_builder.build_pdf(top5_articles, analyzed_news, pdf_filename)
+        pdf_builder.build_pdf(top5_articles, analyzed_news, pdf_filename, b2b_insights)
         print(f"PDF Generated Successfully: {pdf_filename}")
         
     except Exception as e:

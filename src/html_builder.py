@@ -4,7 +4,7 @@ class ReportBuilder:
     """
     최종 HTML 이메일 본문을 생성하는 역할
     """
-    def build_html(self, top5_articles: List[Dict], all_news: List[Dict]) -> str:
+    def build_html(self, top5_articles: List[Dict], all_news: List[Dict], b2b_insights: Dict = None) -> str:
         from datetime import datetime
         today_str = datetime.now().strftime("%Y. %m. %d (%a)")
         
@@ -43,10 +43,56 @@ class ReportBuilder:
                 </div>
                 
                 <div class="content">
+        """
+        
+        # B2B Insights 섹션 추가 (Top5보다 먼저)
+        if b2b_insights and (b2b_insights.get('key_issues') or b2b_insights.get('implications')):
+            html += """
+                    <div class="section-title">
+                        <span>💼</span> 삼성전자 MX 사업부 B2B 개발그룹 관점
+                    </div>
+            """
+            
+            # Key Issues
+            if b2b_insights.get('key_issues'):
+                html += '<div style="margin-bottom: 30px;">'
+                html += '<h3 style="color: #1a2980; font-size: 16px; margin-bottom: 15px;">🔍 주목할 핵심 이슈</h3>'
+                for issue in b2b_insights['key_issues']:
+                    html += f"""
+                    <div class="topic-card" style="background: #f0f9ff; border-left: 4px solid #1a2980;">
+                        <h4 style="margin: 0 0 10px 0; color: #1a2980; font-size: 15px;">{issue.get('title', '')}</h4>
+                        <p style="margin: 0; color: #4a5568; font-size: 14px; line-height: 1.6;">{issue.get('description', '')}</p>
+                    </div>
+                    """
+                html += '</div>'
+            
+            # Implications
+            if b2b_insights.get('implications'):
+                html += f"""
+                <div class="topic-card" style="background: #fff7ed; border-left: 4px solid #f59e0b;">
+                    <h3 style="color: #f59e0b; font-size: 16px; margin-bottom: 15px;">💡 비즈니스/기술적 시사점</h3>
+                    <p style="margin: 0; color: #4a5568; font-size: 14px; line-height: 1.8;">{b2b_insights['implications']}</p>
+                </div>
+                """
+            
+            # Action Items
+            if b2b_insights.get('action_items'):
+                html += '<div style="margin-top: 30px; margin-bottom: 30px;">'
+                html += '<h3 style="color: #1a2980; font-size: 16px; margin-bottom: 15px;">📋 고려사항</h3>'
+                html += '<ul style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px; line-height: 1.8;">'
+                for item in b2b_insights['action_items']:
+                    html += f'<li>{item}</li>'
+                html += '</ul></div>'
+            
+            html += '<hr style="margin: 40px 0; border: none; border-top: 2px solid #e2e8f0;">'
+        
+        # 기존 Top5 섹션
+        html += """
                     <div class="section-title">
                         <span>🔥</span> Today's Top 5 Deep Dive
                     </div>
         """
+        
         
         for idx, article in enumerate(top5_articles):
             title = article.get('title_korean', article['title'])

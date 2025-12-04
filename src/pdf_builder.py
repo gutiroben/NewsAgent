@@ -64,7 +64,7 @@ class PDFBuilder:
             name='TOCEntry', fontName=self.font_name, fontSize=11, leading=14, spaceAfter=5
         ))
 
-    def build_pdf(self, top5_articles: List[Dict], all_news: List[Dict], output_filename="report.pdf"):
+    def build_pdf(self, top5_articles: List[Dict], all_news: List[Dict], output_filename="report.pdf", b2b_insights: Dict = None):
         doc = MyDocTemplate(output_filename, pagesize=A4)
         story = []
         today_str = datetime.now().strftime("%Y. %m. %d (%A)")
@@ -80,6 +80,13 @@ class PDFBuilder:
         # 2. Manual Table of Contents (with Links)
         story.append(Paragraph("Table of Contents", self.styles['Heading1Korean']))
         story.append(Spacer(1, 20))
+
+        # B2B Insights Link 추가
+        if b2b_insights:
+            story.append(Paragraph("💼 B2B 개발그룹 관점", self.styles['Heading2Korean']))
+            link_text = f"<a href='#B2B_INSIGHTS' color='black'>주목할 이슈 및 시사점</a>"
+            story.append(Paragraph(link_text, self.styles['TOCEntry']))
+            story.append(Spacer(1, 10))
 
         # Top 5 Links
         story.append(Paragraph("🔥 Top 5 Insights", self.styles['Heading2Korean']))
@@ -131,7 +138,34 @@ class PDFBuilder:
 
         story.append(PageBreak())
 
-        # 3. Top 5 Deep Dive Body
+        # 3. B2B Insights Body (Top5보다 먼저)
+        if b2b_insights:
+            anchor_tag = '<a name="B2B_INSIGHTS"/>'
+            story.append(Paragraph(f"{anchor_tag}💼 삼성전자 MX 사업부 B2B 개발그룹 관점", self.styles['Heading1Korean']))
+            
+            # Key Issues
+            if b2b_insights.get('key_issues'):
+                story.append(Paragraph("🔍 주목할 핵심 이슈", self.styles['Heading2Korean']))
+                for issue in b2b_insights['key_issues']:
+                    story.append(Paragraph(issue.get('title', ''), self.styles['ArticleTitle']))
+                    story.append(Paragraph(issue.get('description', ''), self.styles['BodyText']))
+                    story.append(Spacer(1, 15))
+            
+            # Implications
+            if b2b_insights.get('implications'):
+                story.append(Paragraph("💡 비즈니스/기술적 시사점", self.styles['Heading2Korean']))
+                story.append(Paragraph(b2b_insights['implications'], self.styles['BodyText']))
+                story.append(Spacer(1, 15))
+            
+            # Action Items
+            if b2b_insights.get('action_items'):
+                story.append(Paragraph("📋 고려사항", self.styles['Heading2Korean']))
+                for item in b2b_insights['action_items']:
+                    story.append(Paragraph(f"• {item}", self.styles['BodyText']))
+            
+            story.append(PageBreak())
+
+        # 4. Top 5 Deep Dive Body
         story.append(Paragraph("🔥 Top 5 Insights", self.styles['Heading1Korean']))
         
         for idx, article in enumerate(top5_articles):
@@ -146,7 +180,7 @@ class PDFBuilder:
 
         story.append(PageBreak())
 
-        # 4. Full News by Category Body
+        # 5. Full News by Category Body
         story.append(Paragraph("📂 Full News by Category", self.styles['Heading1Korean']))
         
         cat_idx = 0

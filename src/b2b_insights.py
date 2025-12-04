@@ -69,7 +69,9 @@ class B2BInsightsAnalyzer:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            # 전략적 인사이트를 위해 temperature=0.4 설정
+            generation_config = {"temperature": 0.4}
+            response = self.model.generate_content(prompt, generation_config=generation_config)
             text = response.text
             
             # JSON 추출

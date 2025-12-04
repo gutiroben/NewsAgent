@@ -52,7 +52,9 @@ class NewsAnalyst:
         """
 
         try:
-            response = self.model.generate_content(prompt)
+            # 다양한 관점의 분석을 위해 temperature=0.4 설정
+            generation_config = {"temperature": 0.4}
+            response = self.model.generate_content(prompt, generation_config=generation_config)
             
             text = response.text
             # 마크다운 코드 블록 제거 (더 견고하게)

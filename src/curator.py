@@ -52,7 +52,9 @@ class NewsCurator:
         """
         
         try:
-            response = self.model.generate_content(prompt)
+            # 선정 기준의 일관성을 위해 temperature=0.3 설정
+            generation_config = {"temperature": 0.3}
+            response = self.model.generate_content(prompt, generation_config=generation_config)
             text = response.text
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0]

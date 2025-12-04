@@ -35,6 +35,9 @@ class PDFBuilder:
             name='SubtitleKorean', fontName=self.font_name, fontSize=12, leading=16, alignment=1, textColor=colors.gray
         ))
         self.styles.add(ParagraphStyle(
+            name='Heading1Korean', fontName=self.font_name, fontSize=18, leading=24, spaceBefore=20, spaceAfter=10, textColor=colors.HexColor('#1a2980')
+        ))
+        self.styles.add(ParagraphStyle(
             name='Heading2Korean', fontName=self.font_name, fontSize=14, leading=18, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2d3748')
         ))
         self.styles.add(ParagraphStyle(

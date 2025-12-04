@@ -34,7 +34,7 @@ class PDFBuilder:
             name='SubtitleKorean', fontName=self.font_name, fontSize=12, leading=16, alignment=1, textColor=colors.gray
         ))
         self.styles.add(ParagraphStyle(
-            name='Heading1Korean', fontName=self.font_name, fontSize=18, leading=24, spaceBefore=20, spaceAfter=10, textColor=colors.HexColor('#1a2980')
+            name='Heading2Korean', fontName=self.font_name, fontSize=14, leading=18, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2d3748')
         ))
         self.styles.add(ParagraphStyle(
             name='ArticleTitle', fontName=self.font_name, fontSize=16, leading=20, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#2d3748')
@@ -73,28 +73,54 @@ class PDFBuilder:
         story.append(Paragraph("Deep Dive into AI Trends", self.styles['SubtitleKorean']))
         story.append(PageBreak())
 
-        # 2. Table of Contents (TOC)
+        # 2. Manual Table of Contents (with Links)
         story.append(Paragraph("Table of Contents", self.styles['Heading1Korean']))
-        toc = TableOfContents()
-        toc.levelStyles = [self.styles['TOCEntry']]
-        story.append(toc)
+        story.append(Spacer(1, 20))
+
+        # Top 5 Links
+        story.append(Paragraph("🔥 Top 5 Insights", self.styles['Heading2Korean']))
+        for idx, article in enumerate(top5_articles):
+            title = article.get('title_korean', article['title'])
+            # Link to Anchor 'TOP5_{idx}'
+            link_text = f"<a href='#TOP5_{idx}' color='black'>{idx+1}. {title}</a>"
+            story.append(Paragraph(link_text, self.styles['TOCEntry']))
+        
+        story.append(Spacer(1, 10))
+        
+        # Category Links
+        story.append(Paragraph("📂 News by Category", self.styles['Heading2Korean']))
+        
+        # Organize data for TOC
+        processed_indices = set()
+        for article in top5_articles:
+             if 'link' in article: processed_indices.add(article['link'])
+
+        news_by_category = {}
+        for news in all_news:
+            if news.get('link') in processed_indices: continue
+            cat = news.get('category', 'Others')
+            if cat not in news_by_category: news_by_category[cat] = []
+            news_by_category[cat].append(news)
+
+        # Create TOC for Categories
+        cat_idx = 0
+        for category, news_list in news_by_category.items():
+            if not news_list: continue
+            # Link to Anchor 'CAT_{cat_idx}'
+            cat_link = f"<a href='#CAT_{cat_idx}' color='black'>📌 {category}</a>"
+            story.append(Paragraph(cat_link, self.styles['TOCEntry']))
+            cat_idx += 1
+
         story.append(PageBreak())
 
-        # 3. Top 5 Deep Dive
+        # 3. Top 5 Deep Dive Body
         story.append(Paragraph("🔥 Top 5 Insights", self.styles['Heading1Korean']))
         
-        # 중복 방지용 Set
-        processed_indices = set()
-
         for idx, article in enumerate(top5_articles):
-            self._add_article_to_story(story, article, rank=idx+1)
-            # 원본 인덱스 추적 (나중에 중복 출력 방지)
-            # article['index']가 있으면 좋지만, 없으면 내용 매칭 등 필요. 
-            # 여기서는 Top5는 무조건 제외 리스트에 추가
-            if 'link' in article:
-                processed_indices.add(article['link'])
+            # Set Anchor 'TOP5_{idx}'
+            anchor_tag = f'<a name="TOP5_{idx}"/>'
+            self._add_article_to_story(story, article, rank=idx+1, anchor=anchor_tag)
             
-            # 2개마다 페이지 넘김 (가독성)
             if (idx + 1) % 2 == 0:
                 story.append(PageBreak())
             else:
@@ -102,67 +128,71 @@ class PDFBuilder:
 
         story.append(PageBreak())
 
-        # 4. Full News by Category
+        # 4. Full News by Category Body
         story.append(Paragraph("📂 Full News by Category", self.styles['Heading1Korean']))
         
-        # Grouping
-        news_by_category = {}
-        for news in all_news:
-            if news.get('link') in processed_indices:
-                continue
-            cat = news.get('category', 'Others')
-            if cat not in news_by_category:
-                news_by_category[cat] = []
-            news_by_category[cat].append(news)
-
+        cat_idx = 0
         for category, news_list in news_by_category.items():
             if not news_list: continue
             
-            story.append(Paragraph(f"📌 {category}", self.styles['Heading1Korean']))
+            # Set Anchor 'CAT_{cat_idx}'
+            cat_anchor = f'<a name="CAT_{cat_idx}"/>'
+            story.append(Paragraph(f"{cat_anchor}📌 {category}", self.styles['Heading1Korean']))
             
             for news in news_list:
-                self._add_article_to_story(story, news, is_simple=False) # 모두 상세 버전으로 출력
+                self._add_article_to_story(story, news, is_simple=False)
                 story.append(Spacer(1, 20))
             
             story.append(PageBreak())
+            cat_idx += 1
 
-        # PDF 생성 (MultiBuild for TOC)
-        doc.multiBuild(story)
+        # Build
+        doc.build(story)
         print(f"PDF Generated: {output_filename}")
         return output_filename
 
-    def _add_article_to_story(self, story, article, rank=None, is_simple=False):
+import re
+
+    def _clean_markdown(self, text):
+        """Markdown 문법을 ReportLab이 이해할 수 있는 HTML 태그로 변환"""
+        if not text: return ""
+        
+        # 1. Bold: **text** -> <b>text</b>
+        text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+        
+        # 2. List: * item or - item -> • item (줄바꿈은 나중에 처리)
+        # 문장 시작 부분의 * 나 - 를 Bullet으로 변경
+        text = re.sub(r'^\s*[\*\-]\s+', '• ', text, flags=re.MULTILINE)
+        
+        # 3. Headers: ### Title -> <b>Title</b>
+        text = re.sub(r'###\s*(.*)', r'<b>\1</b>', text)
+        
+        return text
+
+    def _add_article_to_story(self, story, article, rank=None, is_simple=False, anchor=""):
         title = article.get('title_korean', article['title'])
         summary = article.get('core_summary', '')
         detail = article.get('detailed_explanation', '')
         source = article.get('source', '')
         link = article.get('link', '')
         
-        # Anchor for TOC (나중에 구현 가능, 현재는 제목 스타일만 적용)
-        # TOC 자동 생성을 위해 Paragraph에 태그 추가 필요
-        
         if rank:
-            header = f"{rank}. {title}"
+            header = f"{anchor}{rank}. {title}"
         else:
-            header = title
+            header = f"{anchor}{title}"
             
-        # 제목 (TOC에 자동 등록되려면 텍스트만 쓰는 게 아니라 flowable 조작이 필요하지만
-        # ReportLab의 Paragraph를 쓰면 afterFlowable 등을 써야함.
-        # 여기서는 간단히 텍스트만 추가하고 TOC는 multiBuild가 알아서 h1, h2 스타일을 잡도록 설정해야 함.
-        # 하지만 MyDocTemplate에서 afterFlowable을 오버라이드해야 함.
-        # 일단은 복잡한 TOC 링크 대신 심플하게 갑니다.)
-        
         story.append(Paragraph(header, self.styles['ArticleTitle']))
         story.append(Paragraph(f"{source} | <a href='{link}' color='blue'>Original Link</a>", self.styles['MetaInfo']))
         
-        # 핵심 요약 박스
         if summary:
-            story.append(Paragraph(f"<b>[핵심 요지]</b><br/>{summary}", self.styles['CoreSummary']))
+            # Summary도 Markdown 처리
+            clean_summary = self._clean_markdown(summary)
+            story.append(Paragraph(f"<b>[핵심 요지]</b><br/>{clean_summary}", self.styles['CoreSummary']))
 
-        # 상세 설명 (Markdown 줄바꿈 처리)
         if detail:
-            # detail 텍스트 내의 줄바꿈을 <br/>로 변환
-            formatted_detail = detail.replace('\n', '<br/>')
+            # Markdown Cleaning
+            clean_detail = self._clean_markdown(detail)
+            formatted_detail = clean_detail.replace('\n', '<br/>')
             story.append(Paragraph(formatted_detail, self.styles['BodyText']))
 
 

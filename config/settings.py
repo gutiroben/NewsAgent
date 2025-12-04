@@ -14,5 +14,5 @@ EMAIL_RECIPIENT = os.getenv("EMAIL_RECIPIENT")
 
 # Collection Settings
 NEWS_LOOKBACK_HOURS = 24
-BATCH_SIZE = 5
+BATCH_SIZE = 3  # 심층 분석을 위해 배치 사이즈 축소 (5 -> 3)
 

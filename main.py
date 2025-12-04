@@ -2,7 +2,9 @@ import sys
 import os
 from datetime import datetime
 from src.collector import NewsCollector
-from src.summarizer import NewsAnalyst, NewsCurator, ReportBuilder
+from src.analyst import NewsAnalyst
+from src.curator import NewsCurator
+from src.html_builder import ReportBuilder
 from src.pdf_builder import PDFBuilder
 from src.sender import EmailSender
 from config import settings
@@ -23,7 +25,7 @@ def main():
     news_list = []
     try:
         collector = NewsCollector()
-        news_list = collector.collect() # 기본 24시간
+        news_list = collector.collect() 
         print(f"\nTotal News Collected: {len(news_list)}")
         
         if not news_list:
@@ -39,23 +41,26 @@ def main():
     analyzed_news = []
     try:
         analyst = NewsAnalyst()
-        analyzed_news = analyst.analyze_all(news_list, batch_size=5)
+        # settings.BATCH_SIZE (기본 3) 사용
+        batch_size = getattr(settings, 'BATCH_SIZE', 3)
+        analyzed_news = analyst.analyze_all(news_list, batch_size=batch_size)
         print(f"\nSuccessfully analyzed {len(analyzed_news)} items.")
             
     except Exception as e:
         print(f"Error during analysis: {e}")
         sys.exit(1)
 
-    # 3. News Curation (Top Topics)
-    print("\n[Step 3] Curating Top Topics...")
-    topics = []
+    # 3. News Curation (Top Articles)
+    print("\n[Step 3] Curating Top Articles...")
+    top5_articles = []
     try:
         curator = NewsCurator()
-        topics = curator.select_top_topics(analyzed_news)
+        top5_articles = curator.select_top_articles(analyzed_news)
         
-        print(f"\nSelected {len(topics)} Top Topics:")
-        for idx, topic in enumerate(topics):
-            print(f"  [{idx+1}] {topic.get('topic_title')}")
+        print(f"\nSelected {len(top5_articles)} Top Articles:")
+        for idx, article in enumerate(top5_articles):
+            title = article.get('title_korean', article['title'])
+            print(f"  [{idx+1}] {title}")
             
     except Exception as e:
         print(f"Error during curation: {e}")
@@ -68,12 +73,12 @@ def main():
     try:
         # 4-1. HTML (Top 5 Only)
         builder = ReportBuilder()
-        html_content = builder.build_html(topics, analyzed_news)
+        html_content = builder.build_html(top5_articles, analyzed_news)
         print("HTML Generated Successfully.")
         
-        # 4-2. PDF (Full Report)
+        # 4-2. PDF (Full Report with TOC)
         pdf_builder = PDFBuilder()
-        pdf_builder.build_pdf(topics, analyzed_news, pdf_filename)
+        pdf_builder.build_pdf(top5_articles, analyzed_news, pdf_filename)
         print(f"PDF Generated Successfully: {pdf_filename}")
         
     except Exception as e:

@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -67,7 +68,9 @@ class PDFBuilder:
     def build_pdf(self, top5_articles: List[Dict], all_news: List[Dict], output_filename="report.pdf", b2b_insights: Dict = None):
         doc = MyDocTemplate(output_filename, pagesize=A4)
         story = []
-        today_str = datetime.now().strftime("%Y. %m. %d (%A)")
+        # 한국 시간대 명시적 사용
+        kst = ZoneInfo("Asia/Seoul")
+        today_str = datetime.now(kst).strftime("%Y. %m. %d (%A)")
 
         # 1. Cover Page
         story.append(Spacer(1, 100))

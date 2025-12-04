@@ -90,3 +90,4 @@ class B2BInsightsAnalyzer:
             }
 
 
+

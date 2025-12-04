@@ -6,7 +6,11 @@ class ReportBuilder:
     """
     def build_html(self, top5_articles: List[Dict], all_news: List[Dict], b2b_insights: Dict = None) -> str:
         from datetime import datetime
-        today_str = datetime.now().strftime("%Y. %m. %d (%a)")
+        from zoneinfo import ZoneInfo
+        
+        # 한국 시간대 명시적 사용
+        kst = ZoneInfo("Asia/Seoul")
+        today_str = datetime.now(kst).strftime("%Y. %m. %d (%a)")
         
         html = f"""
         <!DOCTYPE html>

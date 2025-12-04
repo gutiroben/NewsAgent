@@ -1,6 +1,7 @@
 import sys
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from src.collector import NewsCollector
 from src.analyst import NewsAnalyst
 from src.curator import NewsCurator
@@ -101,7 +102,9 @@ def main():
     # 5. Send Email
     print("\n[Step 5] Sending Email...")
     try:
-        today_str = datetime.now().strftime("%Y-%m-%d")
+        # 한국 시간대 명시적 사용
+        kst = ZoneInfo("Asia/Seoul")
+        today_str = datetime.now(kst).strftime("%Y-%m-%d")
         subject = f"📢 [NewsAgent] 오늘의 AI 트렌드 리포트 ({today_str})"
         
         sender = EmailSender()

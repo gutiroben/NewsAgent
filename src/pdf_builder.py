@@ -45,9 +45,17 @@ class PDFBuilder:
         self.styles.add(ParagraphStyle(
             name='CoreSummary', fontName=self.font_name, fontSize=11, leading=16, backColor=colors.HexColor('#f7fafc'), borderPadding=10, spaceAfter=15
         ))
-        self.styles.add(ParagraphStyle(
-            name='BodyText', fontName=self.font_name, fontSize=10, leading=16, spaceAfter=10
-        ))
+        # 기존 BodyText가 있으면 업데이트, 없으면 추가
+        if 'BodyText' in self.styles:
+            self.styles['BodyText'].fontName = self.font_name
+            self.styles['BodyText'].fontSize = 10
+            self.styles['BodyText'].leading = 16
+            self.styles['BodyText'].spaceAfter = 10
+        else:
+            self.styles.add(ParagraphStyle(
+                name='BodyText', fontName=self.font_name, fontSize=10, leading=16, spaceAfter=10
+            ))
+            
         self.styles.add(ParagraphStyle(
             name='TOCEntry', fontName=self.font_name, fontSize=11, leading=14, spaceAfter=5
         ))

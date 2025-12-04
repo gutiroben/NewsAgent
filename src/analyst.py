@@ -55,13 +55,25 @@ class NewsAnalyst:
             response = self.model.generate_content(prompt)
             
             text = response.text
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0]
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0]
+            # 마크다운 코드 블록 제거 (더 견고하게)
+            clean_text = text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            elif clean_text.startswith("```"):
+                clean_text = clean_text[3:]
             
-            analyzed_list = json.loads(text.strip())
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
             
+            clean_text = clean_text.strip()
+            
+            try:
+                analyzed_list = json.loads(clean_text)
+            except json.JSONDecodeError as je:
+                print(f"JSON Parsing Error in Analyst: {je}")
+                print(f"Raw Text from Gemini:\n{text}") # 디버깅용 원본 출력
+                return news_batch # 파싱 실패 시 원본 반환
+
             final_results = []
             for item in analyzed_list:
                 idx = item.get('index')

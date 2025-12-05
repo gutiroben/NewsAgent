@@ -20,8 +20,9 @@ class EmailSender:
         try:
             # 메시지 객체 생성
             msg = MIMEMultipart()
-            msg['From'] = self.sender_email
+            msg['From'] = f"NewsAgent <{self.sender_email}>"
             msg['To'] = recipient_email
+            msg['Reply-To'] = self.sender_email
             msg['Subject'] = subject
             
             # 본문 추가 (HTML)

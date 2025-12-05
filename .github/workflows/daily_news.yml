@@ -32,6 +32,7 @@ jobs:
         EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        SLACK_CHANNEL_EMAIL: ${{ secrets.SLACK_CHANNEL_EMAIL }}
       run: |
         python main.py
 

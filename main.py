@@ -99,8 +99,8 @@ def main():
         print(f"Error during report building: {e}")
         sys.exit(1)
 
-    # 5. Send Email
-    print("\n[Step 5] Sending Email...")
+    # 5. Send Email & Slack
+    print("\n[Step 5] Sending Report...")
     try:
         # 한국 시간대 명시적 사용
         kst = ZoneInfo("Asia/Seoul")
@@ -108,11 +108,29 @@ def main():
         subject = f"📢 [NewsAgent] 오늘의 AI 트렌드 리포트 ({today_str})"
         
         sender = EmailSender()
-        # PDF 파일 첨부하여 발송
-        sender.send_email(settings.EMAIL_RECIPIENT, subject, html_content, attachment_path=pdf_filename)
+        
+        # 이메일 발송 (SEND_TO_EMAIL이 true인 경우)
+        if settings.SEND_TO_EMAIL:
+            if not settings.EMAIL_RECIPIENT:
+                print("Warning: EMAIL_RECIPIENT is not set. Skipping email.")
+            else:
+                sender.send_email(settings.EMAIL_RECIPIENT, subject, html_content, attachment_path=pdf_filename)
+                print(f"Email sent successfully to {settings.EMAIL_RECIPIENT}")
+        
+        # 슬랙 채널 발송 (SEND_TO_SLACK이 true인 경우)
+        if settings.SEND_TO_SLACK:
+            if not settings.SLACK_CHANNEL_EMAIL:
+                print("Warning: SLACK_CHANNEL_EMAIL is not set. Skipping Slack.")
+            else:
+                sender.send_email(settings.SLACK_CHANNEL_EMAIL, subject, html_content, attachment_path=pdf_filename)
+                print(f"Slack message sent successfully to {settings.SLACK_CHANNEL_EMAIL}")
+        
+        # 둘 다 false인 경우 경고
+        if not settings.SEND_TO_EMAIL and not settings.SEND_TO_SLACK:
+            print("Warning: Both SEND_TO_EMAIL and SEND_TO_SLACK are false. No report sent.")
         
     except Exception as e:
-        print(f"Error during email sending: {e}")
+        print(f"Error during sending: {e}")
         sys.exit(1)
 
     print("\n=== NewsAgent Finished ===")

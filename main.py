@@ -83,7 +83,10 @@ def main():
     # 4. Report Building (HTML & PDF)
     print("\n[Step 4] Building Report (HTML & PDF)...")
     html_content = ""
-    pdf_filename = "NewsAgent_Report.pdf"
+    # 한국 시간대 명시적 사용
+    kst = ZoneInfo("Asia/Seoul")
+    today_str = datetime.now(kst).strftime("%Y-%m-%d")
+    pdf_filename = f"NewsAgent_Report_{today_str}.pdf"
     try:
         # 4-1. HTML (B2B Insights + Top 5)
         builder = ReportBuilder()
@@ -102,9 +105,7 @@ def main():
     # 5. Send Email & Slack
     print("\n[Step 5] Sending Report...")
     try:
-        # 한국 시간대 명시적 사용
-        kst = ZoneInfo("Asia/Seoul")
-        today_str = datetime.now(kst).strftime("%Y-%m-%d")
+        # today_str은 Step 4에서 이미 생성됨
         subject = f"📢 [NewsAgent] 오늘의 AI 트렌드 리포트 ({today_str})"
         
         sender = EmailSender()

@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import re
 from typing import List, Dict, Any
 import google.generativeai as genai
 from config import settings
@@ -103,21 +104,44 @@ class NewsAnalyst:
                         f.write(f"[{idx}] {news['title']}\n")
                 print(f"[DEBUG] Step 2.4: Raw response saved to: {log_file}")
             
-            # 마크다운 코드 블록 제거 (더 견고하게)
+            # 마크다운 코드 블록에서 첫 번째 유효한 JSON만 추출
             clean_text = text.strip()
-            if clean_text.startswith("```json"):
-                clean_text = clean_text[7:]
-            elif clean_text.startswith("```"):
-                clean_text = clean_text[3:]
             
-            if clean_text.endswith("```"):
-                clean_text = clean_text[:-3]
+            # 여러 JSON 블록이 있는 경우 첫 번째만 사용
+            json_blocks = []
+            if "```json" in clean_text:
+                # ```json ... ``` 블록 찾기
+                pattern = r'```json\s*(.*?)\s*```'
+                matches = re.findall(pattern, clean_text, re.DOTALL)
+                json_blocks = matches
+            elif "```" in clean_text:
+                # 일반 ``` ... ``` 블록 찾기
+                pattern = r'```[^\n]*\s*(.*?)\s*```'
+                matches = re.findall(pattern, clean_text, re.DOTALL)
+                json_blocks = matches
             
-            clean_text = clean_text.strip()
+            # 첫 번째 JSON 블록 사용
+            if json_blocks:
+                clean_text = json_blocks[0].strip()
+                if target_in_batch and len(json_blocks) > 1:
+                    print(f"[WARNING] Step 2.5: Found {len(json_blocks)} JSON blocks, using first one only")
+            else:
+                # 마크다운 블록이 없는 경우 기존 로직 사용
+                if clean_text.startswith("```json"):
+                    clean_text = clean_text[7:]
+                elif clean_text.startswith("```"):
+                    clean_text = clean_text[3:]
+                
+                if clean_text.endswith("```"):
+                    clean_text = clean_text[:-3]
+                
+                clean_text = clean_text.strip()
             
             if target_in_batch:
                 print(f"[DEBUG] Step 2.5: Cleaned text length: {len(clean_text)} characters")
             
+            # 첫 번째 유효한 JSON 배열만 파싱 시도
+            analyzed_list = None
             try:
                 analyzed_list = json.loads(clean_text)
                 
@@ -127,11 +151,49 @@ class NewsAnalyst:
                     print(f"[DEBUG] Step 2.6: Expected items count: {len(news_batch)}")
                     
             except json.JSONDecodeError as je:
-                print(f"[ERROR] JSON Parsing Error in Analyst: {je}")
-                print(f"[ERROR] Raw Text from Gemini:\n{text}")
+                # 파싱 실패 시 첫 번째 유효한 JSON 배열만 찾아서 파싱 시도
+                print(f"[WARNING] Step 2.6: Initial JSON parsing failed: {je}")
+                print(f"[WARNING] Step 2.6: Attempting to extract first valid JSON array...")
+                
+                try:
+                    # 첫 번째 '[' 부터 시작하는 JSON 배열 찾기
+                    start_idx = clean_text.find('[')
+                    if start_idx != -1:
+                        # 첫 번째 '[' 부터 시작해서 유효한 JSON 배열 찾기
+                        bracket_count = 0
+                        end_idx = start_idx
+                        for i in range(start_idx, len(clean_text)):
+                            if clean_text[i] == '[':
+                                bracket_count += 1
+                            elif clean_text[i] == ']':
+                                bracket_count -= 1
+                                if bracket_count == 0:
+                                    end_idx = i + 1
+                                    break
+                        
+                        if end_idx > start_idx:
+                            json_candidate = clean_text[start_idx:end_idx]
+                            analyzed_list = json.loads(json_candidate)
+                            print(f"[DEBUG] Step 2.6: Successfully extracted first valid JSON array!")
+                            print(f"[DEBUG] Step 2.6: Parsed items count: {len(analyzed_list)}")
+                        else:
+                            raise ValueError("Could not find valid JSON array boundaries")
+                    else:
+                        raise ValueError("No JSON array found in response")
+                        
+                except Exception as e2:
+                    print(f"[ERROR] JSON Parsing Error in Analyst: {je}")
+                    print(f"[ERROR] Fallback parsing also failed: {e2}")
+                    print(f"[ERROR] Raw Text from Gemini:\n{text[:500]}...")  # 처음 500자만 출력
+                    if target_in_batch:
+                        print(f"[ERROR] Target article was in this batch - parsing failed!")
+                    return news_batch # 파싱 실패 시 원본 반환
+            
+            if analyzed_list is None:
+                print(f"[ERROR] Failed to parse JSON from Gemini response")
                 if target_in_batch:
                     print(f"[ERROR] Target article was in this batch - parsing failed!")
-                return news_batch # 파싱 실패 시 원본 반환
+                return news_batch
 
             final_results = []
             processed_indices = set()

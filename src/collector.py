@@ -4,6 +4,7 @@ import sqlite3
 import os
 from datetime import datetime, timedelta, timezone
 from time import mktime
+from zoneinfo import ZoneInfo
 
 # 타겟 기사 추적용 상수
 TARGET_ARTICLE_TITLE = "Dario Amodei on the Risk of an A.I. Bubble, Regulation and A.G.I."
@@ -37,13 +38,22 @@ class NewsCollector:
         """
         모든 피드를 순회하며 최근 N시간 이내의 뉴스를 수집
         GitHub Actions 환경에 맞춰 DB 중복 체크 대신 시간 기반 필터링 사용
+        
+        Args:
+            lookback_hours: 수집할 시간 범위 (시간 단위)
+                           오늘 07:00 (KST)를 기준으로 lookback_hours 전 시간부터 수집
         """
         feed_config = self._load_feeds()
         collected_news = []
         
-        # 비교 기준 시간 (현재 시간 - lookback_hours)
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
-        print(f"Checking news since: {cutoff_time}")
+        # KST 기준으로 오늘 07:00를 기준으로 정확한 시작 시간 계산
+        kst = ZoneInfo("Asia/Seoul")
+        now_kst = datetime.now(kst)
+        today_07_kst = now_kst.replace(hour=7, minute=0, second=0, microsecond=0)
+        cutoff_kst = today_07_kst - timedelta(hours=lookback_hours)
+        cutoff_time = cutoff_kst.astimezone(timezone.utc)
+        
+        print(f"Checking news since: {cutoff_kst.strftime('%Y-%m-%d %H:%M:%S KST')} ({cutoff_time.strftime('%Y-%m-%d %H:%M:%S UTC')})")
 
         for category_group in feed_config['feeds']:
             category = category_group['category']

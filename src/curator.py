@@ -2,6 +2,7 @@ import json
 from typing import List, Dict
 import google.generativeai as genai
 from config import settings
+from src.collector import TARGET_ARTICLE_TITLE
 
 class NewsCurator:
     """
@@ -13,6 +14,10 @@ class NewsCurator:
             genai.configure(api_key=api_key)
             self.model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
 
+    def _is_target_article(self, title: str) -> bool:
+        """타겟 기사인지 확인"""
+        return TARGET_ARTICLE_TITLE.lower() in title.lower()
+    
     def select_top_articles(self, analyzed_news: List[Dict]) -> List[Dict]:
         """
         분석된 뉴스 리스트를 받아 Top 5 기사 선정
@@ -20,6 +25,25 @@ class NewsCurator:
         """
         if not analyzed_news:
             return []
+        
+        # 타겟 기사 확인
+        target_found = False
+        target_index = -1
+        for idx, news in enumerate(analyzed_news):
+            title = news.get('title', '')
+            if self._is_target_article(title):
+                target_found = True
+                target_index = idx
+                print(f"\n[DEBUG] Step 3.1: Target article found in analyzed_news!")
+                print(f"[DEBUG] Step 3.1: Index: {idx}")
+                print(f"[DEBUG] Step 3.1: Original title: {title}")
+                print(f"[DEBUG] Step 3.1: title_korean: {news.get('title_korean', 'MISSING')}")
+                print(f"[DEBUG] Step 3.1: core_summary: {bool(news.get('core_summary'))} ({len(news.get('core_summary', ''))} chars)")
+                print(f"[DEBUG] Step 3.1: detailed_explanation: {bool(news.get('detailed_explanation'))} ({len(news.get('detailed_explanation', ''))} chars)")
+                break
+        
+        if not target_found:
+            print(f"[WARNING] Step 3.1: Target article not found in analyzed_news!")
             
         # 입력 데이터 최소화 (Index, Title, Core Summary만 사용)
         input_text = ""
@@ -63,6 +87,17 @@ class NewsCurator:
                 
             selected_list = json.loads(text.strip())
             
+            if target_found:
+                print(f"[DEBUG] Step 3.2: Selected articles count: {len(selected_list)}")
+                target_selected = False
+                for item in selected_list:
+                    if item.get('article_index') == target_index:
+                        target_selected = True
+                        print(f"[DEBUG] Step 3.2: Target article was selected!")
+                        break
+                if not target_selected:
+                    print(f"[DEBUG] Step 3.2: Target article was NOT selected")
+            
             # 결과 매핑: 선정된 기사 정보를 찾아서 리스트로 반환
             final_top5 = []
             for item in selected_list:
@@ -71,6 +106,12 @@ class NewsCurator:
                     article = analyzed_news[idx].copy()
                     article['selection_reason'] = item.get('selection_reason')
                     final_top5.append(article)
+                    
+                    if target_found and idx == target_index:
+                        print(f"[DEBUG] Step 3.3: Target article added to top5!")
+                        print(f"[DEBUG] Step 3.3: title_korean: {article.get('title_korean', 'MISSING')}")
+                        print(f"[DEBUG] Step 3.3: core_summary: {bool(article.get('core_summary'))}")
+                        print(f"[DEBUG] Step 3.3: detailed_explanation: {bool(article.get('detailed_explanation'))}")
                     
             return final_top5
             

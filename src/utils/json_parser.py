@@ -22,7 +22,7 @@ def parse_json(text: str, context: str = "unknown") -> Any:
         파싱된 객체 (dict 또는 list)
     
     Raises:
-        json5.JSON5DecodeError: 파싱 실패 시
+        json.JSONDecodeError: 파싱 실패 시
     """
     clean_text = text.strip()
     clean_text = _remove_control_characters(clean_text)
@@ -32,7 +32,7 @@ def parse_json(text: str, context: str = "unknown") -> Any:
         # Strict JSON으로 재직렬화하여 검증
         json.dumps(parsed, ensure_ascii=False)
         return parsed
-    except (json5.JSON5DecodeError, ValueError) as e:
+    except (json.JSONDecodeError, ValueError) as e:
         _save_parse_error_log(text, clean_text, e, context)
         raise
 

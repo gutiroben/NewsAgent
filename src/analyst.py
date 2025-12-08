@@ -140,6 +140,14 @@ class NewsAnalyst:
             if target_in_batch:
                 print(f"[DEBUG] Step 2.5: Cleaned text length: {len(clean_text)} characters")
             
+            # JSON 파싱 전에 제어 문자 제거 (JSON 표준에서 허용되지 않는 제어 문자)
+            # 허용되는 제어 문자: \t (0x09), \n (0x0A), \r (0x0D)
+            # 나머지 제어 문자(0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F) 제거
+            clean_text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', clean_text)
+            
+            if target_in_batch:
+                print(f"[DEBUG] Step 2.5.1: After removing control characters: {len(clean_text)} characters")
+            
             # 첫 번째 유효한 JSON 배열만 파싱 시도
             analyzed_list = None
             try:
@@ -173,6 +181,8 @@ class NewsAnalyst:
                         
                         if end_idx > start_idx:
                             json_candidate = clean_text[start_idx:end_idx]
+                            # 제어 문자 제거 (fallback 파싱 시에도 적용)
+                            json_candidate = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', json_candidate)
                             analyzed_list = json.loads(json_candidate)
                             print(f"[DEBUG] Step 2.6: Successfully extracted first valid JSON array!")
                             print(f"[DEBUG] Step 2.6: Parsed items count: {len(analyzed_list)}")

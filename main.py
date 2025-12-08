@@ -19,6 +19,25 @@ def main():
     else:
         print("=== NewsAgent Started ===")
     
+    # 0. KST 기준 요일 확인 및 주말 체크
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    weekday_kst = now_kst.weekday()  # 0=월요일, 1=화요일, ..., 6=일요일
+    
+    # 일요일이면 early return (수집 및 리포트 생성 안 함)
+    if weekday_kst == 6:  # 일요일
+        print(f"\n[INFO] Today is Sunday (KST: {now_kst.strftime('%Y-%m-%d %A')}). Skipping news collection and report generation.")
+        return
+    
+    # 요일별 lookback 시간 결정
+    if weekday_kst == 0:  # 월요일
+        lookback_hours = 48  # 토요일 07시 ~ 월요일 07시
+        print(f"\n[INFO] Today is Monday (KST: {now_kst.strftime('%Y-%m-%d %A')}). Using 48-hour lookback (Saturday 07:00 ~ Monday 07:00).")
+    else:  # 화~토
+        lookback_hours = 24  # 어제 07시 ~ 오늘 07시
+        weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        print(f"\n[INFO] Today is {weekday_names[weekday_kst]} (KST: {now_kst.strftime('%Y-%m-%d %A')}). Using 24-hour lookback (Yesterday 07:00 ~ Today 07:00).")
+    
     # 0. 환경변수 체크
     if not settings.GEMINI_API_KEY:
         print("Error: GEMINI_API_KEY is missing.")
@@ -38,7 +57,7 @@ def main():
     news_list = []
     try:
         collector = NewsCollector()
-        news_list = collector.collect() 
+        news_list = collector.collect(lookback_hours=lookback_hours) 
         print(f"\nTotal News Collected: {len(news_list)}")
         
         # 타겟 기사 확인

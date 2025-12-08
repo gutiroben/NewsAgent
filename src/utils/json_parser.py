@@ -12,10 +12,10 @@ from typing import Any
 
 def parse_json(text: str, context: str = "unknown") -> Any:
     """
-    JSON 파싱 (제어 문자 제거 + JSON5 파싱 + 검증)
+    JSON 파싱 (마크다운 제거 + 제어 문자 제거 + JSON5 파싱 + 검증)
     
     Args:
-        text: 파싱할 JSON 문자열
+        text: 파싱할 JSON 문자열 (마크다운 코드 블록 포함 가능)
         context: 컨텍스트 정보 (디버깅용, 예: "analyst_batch_1", "curator", "b2b_insights")
     
     Returns:
@@ -25,6 +25,11 @@ def parse_json(text: str, context: str = "unknown") -> Any:
         json.JSONDecodeError: 파싱 실패 시
     """
     clean_text = text.strip()
+    
+    # 1. 마크다운 코드 블록에서 JSON 추출
+    clean_text = _extract_json_from_markdown(clean_text)
+    
+    # 2. 제어 문자 제거
     clean_text = _remove_control_characters(clean_text)
     
     try:
@@ -35,6 +40,37 @@ def parse_json(text: str, context: str = "unknown") -> Any:
     except (json.JSONDecodeError, ValueError) as e:
         _save_parse_error_log(text, clean_text, e, context)
         raise
+
+
+def _extract_json_from_markdown(text: str) -> str:
+    """마크다운 코드 블록에서 JSON 추출"""
+    text = text.strip()
+    
+    # 여러 JSON 블록이 있는 경우 첫 번째만 사용
+    json_blocks = []
+    if "```json" in text:
+        # ```json ... ``` 블록 찾기
+        pattern = r'```json\s*(.*?)\s*```'
+        matches = re.findall(pattern, text, re.DOTALL)
+        json_blocks = matches
+    elif "```" in text:
+        # 일반 ``` ... ``` 블록 찾기
+        pattern = r'```[^\n]*\s*(.*?)\s*```'
+        matches = re.findall(pattern, text, re.DOTALL)
+        json_blocks = matches
+    
+    if json_blocks:
+        return json_blocks[0].strip()
+    
+    # 마크다운 블록이 없는 경우 (순수 JSON)
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    
+    return text.strip()
 
 
 def _remove_control_characters(text: str) -> str:

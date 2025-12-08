@@ -1,8 +1,8 @@
-import json
 from typing import List, Dict
 import google.generativeai as genai
 from config import settings
 from src.collector import TARGET_ARTICLE_TITLE
+from src.utils.json_parser import parse_json
 
 class NewsCurator:
     """
@@ -80,12 +80,9 @@ class NewsCurator:
             generation_config = {"temperature": 0.3}
             response = self.model.generate_content(prompt, generation_config=generation_config)
             text = response.text
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0]
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0]
-                
-            selected_list = json.loads(text.strip())
+            
+            # JSON 파싱 (공통 파서 사용)
+            selected_list = parse_json(text, context="curator")
             
             if target_found:
                 print(f"[DEBUG] Step 3.2: Selected articles count: {len(selected_list)}")

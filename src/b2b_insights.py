@@ -1,7 +1,7 @@
-import json
 from typing import List, Dict
 import google.generativeai as genai
 from config import settings
+from src.utils.json_parser import parse_json
 
 class B2BInsightsAnalyzer:
     """
@@ -74,13 +74,8 @@ class B2BInsightsAnalyzer:
             response = self.model.generate_content(prompt, generation_config=generation_config)
             text = response.text
             
-            # JSON 추출
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0]
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0]
-            
-            insights = json.loads(text.strip())
+            # JSON 파싱 (공통 파서 사용)
+            insights = parse_json(text, context="b2b_insights")
             return insights
             
         except Exception as e:

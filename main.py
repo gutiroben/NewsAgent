@@ -85,8 +85,8 @@ def main():
     analyzed_news = []
     try:
         analyst = NewsAnalyst()
-        # settings.BATCH_SIZE (기본 3) 사용
-        batch_size = getattr(settings, 'BATCH_SIZE', 3)
+        # settings.BATCH_SIZE 사용 (현재는 개별 처리, 배치 크기 1)
+        batch_size = getattr(settings, 'BATCH_SIZE', 1)
         analyzed_news = analyst.analyze_all(news_list, batch_size=batch_size)
         print(f"\nSuccessfully analyzed {len(analyzed_news)} items.")
         

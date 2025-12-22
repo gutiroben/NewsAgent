@@ -10,7 +10,7 @@ from src.utils.json_parser import parse_json
 
 class NewsAnalyst:
     """
-    뉴스를 3개씩 묶어서 심층 분석(Deep Dive)을 수행하는 역할
+    뉴스를 하나씩 심층 분석(Deep Dive)을 수행하는 역할
     """
     def __init__(self):
         api_key = settings.GEMINI_API_KEY
@@ -167,7 +167,17 @@ class NewsAnalyst:
             print(f"Error in analyzing batch: {e}")
             return news_batch
 
-    def analyze_all(self, all_news: List[Dict], batch_size=3) -> List[Dict]:
+    def analyze_all(self, all_news: List[Dict], batch_size=1) -> List[Dict]:
+        """
+        모든 뉴스를 배치 단위로 분석 (배치 크기 1 = 개별 처리)
+        
+        Args:
+            all_news: 분석할 뉴스 리스트
+            batch_size: 배치 크기 (기본값 1 = 개별 처리)
+            
+        Returns:
+            분석 결과 리스트
+        """
         print(f"Analyzing {len(all_news)} news items in batches of {batch_size}...")
         
         # 타겟 기사가 전체 뉴스 리스트에 있는지 확인
@@ -191,13 +201,14 @@ class NewsAnalyst:
         for i in range(0, len(all_news), batch_size):
             batch_num += 1
             batch = all_news[i:i+batch_size]
-            batch_start_idx = i
             
             # batch_num을 analyze_batch에서 사용할 수 있도록 설정
             self._current_batch_num = batch_num
             
             if target_found and target_index >= i and target_index < i + batch_size:
                 print(f"\n[DEBUG] Step 2.0: Target article is in batch #{batch_num} (indices {i} to {i+len(batch)-1})")
+            
+            print(f"Processing batch {batch_num} ({len(batch)} article(s))...")
             
             analyzed_batch = self.analyze_batch(batch)
             
@@ -207,7 +218,7 @@ class NewsAnalyst:
                 print(f"[WARNING] Step 2.0: Expected: {len(batch)}, Got: {len(analyzed_batch)}")
             
             results.extend(analyzed_batch)
-            time.sleep(1) # Rate limit 고려
+            time.sleep(1)  # Rate limit 고려
         
         # 최종 결과에서 타겟 기사 확인
         target_in_results = False

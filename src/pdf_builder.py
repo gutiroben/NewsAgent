@@ -224,30 +224,11 @@ class PDFBuilder:
         return text
 
     def _add_article_to_story(self, story, article, rank=None, is_simple=False, anchor=""):
-        from src.collector import TARGET_ARTICLE_TITLE
-        
         title = article.get('title_korean', article['title'])
         summary = article.get('core_summary', '')
         detail = article.get('detailed_explanation', '')
         source = article.get('source', '')
         link = article.get('link', '')
-        original_title = article.get('title', '')
-        
-        # 타겟 기사 확인 및 필드 검증
-        is_target = TARGET_ARTICLE_TITLE.lower() in original_title.lower()
-        if is_target:
-            print(f"\n[DEBUG] Step 4.1: Target article found in PDF building!")
-            print(f"[DEBUG] Step 4.1: Original title: {original_title}")
-            print(f"[DEBUG] Step 4.1: title_korean: {title if title != original_title else 'MISSING (using original)'}")
-            print(f"[DEBUG] Step 4.1: Has core_summary: {bool(summary)} (length: {len(summary)})")
-            print(f"[DEBUG] Step 4.1: Has detailed_explanation: {bool(detail)} (length: {len(detail)})")
-            
-            if not summary:
-                print(f"[ERROR] Step 4.1: Target article has NO core_summary!")
-            if not detail:
-                print(f"[ERROR] Step 4.1: Target article has NO detailed_explanation!")
-            if title == original_title:
-                print(f"[ERROR] Step 4.1: Target article title_korean is MISSING (using original English title)!")
         
         if rank:
             header = f"{anchor}{rank}. {title}"

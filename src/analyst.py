@@ -5,39 +5,21 @@ from zoneinfo import ZoneInfo
 import os
 import google.generativeai as genai
 from config import settings
-from src.collector import TARGET_ARTICLE_TITLE
 from src.utils.json_parser import parse_json
 
 class NewsAnalyst:
     """
-    뉴스를 3개씩 묶어서 심층 분석(Deep Dive)을 수행하는 역할
+    뉴스를 하나씩 심층 분석(Deep Dive)을 수행하는 역할
     """
     def __init__(self):
         api_key = settings.GEMINI_API_KEY
         if api_key:
             genai.configure(api_key=api_key)
             self.model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
-
-    def _is_target_article(self, title: str) -> bool:
-        """타겟 기사인지 확인"""
-        return TARGET_ARTICLE_TITLE.lower() in title.lower()
     
     def analyze_batch(self, news_batch: List[Dict]) -> List[Dict]:
         if not news_batch:
             return []
-
-        # 배치에 타겟 기사 포함 여부 확인
-        target_in_batch = False
-        target_indices = []
-        for idx, news in enumerate(news_batch):
-            if self._is_target_article(news['title']):
-                target_in_batch = True
-                target_indices.append(idx)
-                print(f"\n[DEBUG] Step 2.1: Target article found in batch!")
-                print(f"[DEBUG] Step 2.1: Batch index: {idx}")
-                print(f"[DEBUG] Step 2.1: Title: {news['title']}")
-                print(f"[DEBUG] Step 2.1: Source: {news.get('source', 'Unknown')}")
-                print(f"[DEBUG] Step 2.1: Link: {news.get('link', 'N/A')}")
 
         # 프롬프트 구성
         news_text = ""
@@ -49,10 +31,6 @@ class NewsAnalyst:
             Original Summary: {news.get('summary', '')}
             --------------------------------
             """
-        
-        if target_in_batch:
-            print(f"[DEBUG] Step 2.2: Sending batch to Gemini API (batch size: {len(news_batch)})")
-            print(f"[DEBUG] Step 2.2: Target article indices in batch: {target_indices}")
 
         prompt = f"""
         You are an expert AI Tech Analyst.
@@ -79,29 +57,8 @@ class NewsAnalyst:
         try:
             # 다양한 관점의 분석을 위해 temperature=0.4 설정
             generation_config = {"temperature": 0.4}
-            
-            if target_in_batch:
-                print(f"[DEBUG] Step 2.3: Calling Gemini API...")
-            
             response = self.model.generate_content(prompt, generation_config=generation_config)
-            
             text = response.text
-            
-            if target_in_batch:
-                print(f"[DEBUG] Step 2.4: Received response from Gemini API")
-                print(f"[DEBUG] Step 2.4: Response length: {len(text)} characters")
-                # 원본 응답 저장 (디버깅용)
-                os.makedirs('logs', exist_ok=True)
-                kst = ZoneInfo("Asia/Seoul")
-                timestamp = datetime.now(kst).strftime("%Y%m%d_%H%M%S")
-                log_file = f"logs/gemini_response_{timestamp}.txt"
-                with open(log_file, 'w', encoding='utf-8') as f:
-                    f.write("=== Gemini API Raw Response ===\n")
-                    f.write(text)
-                    f.write("\n\n=== Batch Info ===\n")
-                    for idx, news in enumerate(news_batch):
-                        f.write(f"[{idx}] {news['title']}\n")
-                print(f"[DEBUG] Step 2.4: Raw response saved to: {log_file}")
             
             # JSON 파싱 (공통 파서 사용)
             batch_num = getattr(self, '_current_batch_num', 0)
@@ -109,15 +66,8 @@ class NewsAnalyst:
             
             try:
                 analyzed_list = parse_json(text, context=context)
-                
-                if target_in_batch:
-                    print(f"[DEBUG] Step 2.6: JSON5 parsing successful!")
-                    print(f"[DEBUG] Step 2.6: Parsed items count: {len(analyzed_list)}")
-                    print(f"[DEBUG] Step 2.6: Expected items count: {len(news_batch)}")
             except Exception as e:
                 print(f"[ERROR] JSON Parsing Error in Analyst: {e}")
-                if target_in_batch:
-                    print(f"[ERROR] Target article was in this batch - parsing failed!")
                 return news_batch  # 파싱 실패 시 원본 반환
 
             final_results = []
@@ -130,15 +80,6 @@ class NewsAnalyst:
                     combined.update(item)
                     final_results.append(combined)
                     processed_indices.add(idx)
-                    
-                    # 타겟 기사 처리 확인
-                    if self._is_target_article(news_batch[idx]['title']):
-                        print(f"\n[DEBUG] Step 2.7: Target article processed!")
-                        print(f"[DEBUG] Step 2.7: Index: {idx}")
-                        print(f"[DEBUG] Step 2.7: Original title: {news_batch[idx]['title']}")
-                        print(f"[DEBUG] Step 2.7: title_korean: {item.get('title_korean', 'MISSING')}")
-                        print(f"[DEBUG] Step 2.7: core_summary: {bool(item.get('core_summary'))} (length: {len(item.get('core_summary', ''))})")
-                        print(f"[DEBUG] Step 2.7: detailed_explanation: {bool(item.get('detailed_explanation'))} (length: {len(item.get('detailed_explanation', ''))})")
             
             # 누락된 기사 확인
             missing_indices = set(range(len(news_batch))) - processed_indices
@@ -147,19 +88,6 @@ class NewsAnalyst:
                 print(f"[WARNING] Step 2.8: Missing indices: {missing_indices}")
                 for missing_idx in missing_indices:
                     print(f"[WARNING] Step 2.8: Missing article [{missing_idx}]: {news_batch[missing_idx]['title']}")
-                    if self._is_target_article(news_batch[missing_idx]['title']):
-                        print(f"[ERROR] Step 2.8: TARGET ARTICLE WAS NOT PROCESSED!")
-            
-            if target_in_batch:
-                target_found_in_results = any(self._is_target_article(r.get('title', '')) for r in final_results)
-                print(f"[DEBUG] Step 2.9: Target article in final_results: {target_found_in_results}")
-                if target_found_in_results:
-                    for r in final_results:
-                        if self._is_target_article(r.get('title', '')):
-                            print(f"[DEBUG] Step 2.9: Final result for target:")
-                            print(f"[DEBUG] Step 2.9: - title_korean: {r.get('title_korean', 'MISSING')}")
-                            print(f"[DEBUG] Step 2.9: - core_summary: {bool(r.get('core_summary'))} ({len(r.get('core_summary', ''))} chars)")
-                            print(f"[DEBUG] Step 2.9: - detailed_explanation: {bool(r.get('detailed_explanation'))} ({len(r.get('detailed_explanation', ''))} chars)")
             
             return final_results
 
@@ -167,23 +95,18 @@ class NewsAnalyst:
             print(f"Error in analyzing batch: {e}")
             return news_batch
 
-    def analyze_all(self, all_news: List[Dict], batch_size=3) -> List[Dict]:
+    def analyze_all(self, all_news: List[Dict], batch_size=1) -> List[Dict]:
+        """
+        모든 뉴스를 배치 단위로 분석 (배치 크기 1 = 개별 처리)
+        
+        Args:
+            all_news: 분석할 뉴스 리스트
+            batch_size: 배치 크기 (기본값 1 = 개별 처리)
+            
+        Returns:
+            분석 결과 리스트
+        """
         print(f"Analyzing {len(all_news)} news items in batches of {batch_size}...")
-        
-        # 타겟 기사가 전체 뉴스 리스트에 있는지 확인
-        target_found = False
-        target_index = -1
-        for idx, news in enumerate(all_news):
-            if self._is_target_article(news['title']):
-                target_found = True
-                target_index = idx
-                print(f"\n[DEBUG] Step 2.0: Target article found in all_news!")
-                print(f"[DEBUG] Step 2.0: Index: {idx}")
-                print(f"[DEBUG] Step 2.0: Title: {news['title']}")
-                break
-        
-        if not target_found:
-            print(f"[WARNING] Step 2.0: Target article not found in all_news list!")
         
         results = []
         batch_num = 0
@@ -191,13 +114,11 @@ class NewsAnalyst:
         for i in range(0, len(all_news), batch_size):
             batch_num += 1
             batch = all_news[i:i+batch_size]
-            batch_start_idx = i
             
             # batch_num을 analyze_batch에서 사용할 수 있도록 설정
             self._current_batch_num = batch_num
             
-            if target_found and target_index >= i and target_index < i + batch_size:
-                print(f"\n[DEBUG] Step 2.0: Target article is in batch #{batch_num} (indices {i} to {i+len(batch)-1})")
+            print(f"Processing batch {batch_num} ({len(batch)} article(s))...")
             
             analyzed_batch = self.analyze_batch(batch)
             
@@ -207,22 +128,7 @@ class NewsAnalyst:
                 print(f"[WARNING] Step 2.0: Expected: {len(batch)}, Got: {len(analyzed_batch)}")
             
             results.extend(analyzed_batch)
-            time.sleep(1) # Rate limit 고려
+            time.sleep(1)  # Rate limit 고려
         
-        # 최종 결과에서 타겟 기사 확인
-        target_in_results = False
-        for idx, result in enumerate(results):
-            if self._is_target_article(result.get('title', '')):
-                target_in_results = True
-                print(f"\n[DEBUG] Step 2.10: Target article found in final results!")
-                print(f"[DEBUG] Step 2.10: Result index: {idx}")
-                print(f"[DEBUG] Step 2.10: Has title_korean: {bool(result.get('title_korean'))}")
-                print(f"[DEBUG] Step 2.10: Has core_summary: {bool(result.get('core_summary'))}")
-                print(f"[DEBUG] Step 2.10: Has detailed_explanation: {bool(result.get('detailed_explanation'))}")
-                break
-        
-        if target_found and not target_in_results:
-            print(f"[ERROR] Step 2.10: Target article was lost during analysis!")
-            
         return results
 

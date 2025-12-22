@@ -6,9 +6,6 @@ from datetime import datetime, timedelta, timezone
 from time import mktime
 from zoneinfo import ZoneInfo
 
-# 타겟 기사 추적용 상수
-TARGET_ARTICLE_TITLE = "Dario Amodei on the Risk of an A.I. Bubble, Regulation and A.G.I."
-
 class NewsCollector:
     def __init__(self, config_path='config/feeds.json'):
         self.config_path = config_path
@@ -18,10 +15,6 @@ class NewsCollector:
         # self._init_db()
 
     # def _init_db(self): ... (Removed)
-    
-    def _is_target_article(self, title: str) -> bool:
-        """타겟 기사인지 확인"""
-        return TARGET_ARTICLE_TITLE.lower() in title.lower()
     
     def _load_feeds(self):
         """설정 파일에서 피드 목록 로드"""
@@ -101,14 +94,6 @@ class NewsCollector:
                             }
                             collected_news.append(news_item)
                             new_count += 1
-                            
-                            # 타겟 기사 발견 시 로그
-                            if self._is_target_article(title):
-                                print(f"\n[TARGET] Found target article in collection!")
-                                print(f"[TARGET] Title: {title}")
-                                print(f"[TARGET] Source: {source_name}")
-                                print(f"[TARGET] Link: {link}")
-                                print(f"[TARGET] Index in collected_news: {len(collected_news) - 1}")
                     
                     print(f"Done. ({new_count}/{total_entries} recent items)")
                     

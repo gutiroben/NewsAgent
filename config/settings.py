@@ -5,7 +5,7 @@ load_dotenv()
 
 # Gemini API Settings
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL_NAME = "gemini-2.5-flash"  # User requested version
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")  # 환경변수가 있으면 사용, 없으면 기본값
 
 # Email Settings
 EMAIL_SENDER = os.getenv("EMAIL_SENDER")
@@ -25,5 +25,5 @@ SLACK_CHANNEL_EMAIL = os.getenv("SLACK_CHANNEL_EMAIL")
 
 # Collection Settings
 NEWS_LOOKBACK_HOURS = 24
-BATCH_SIZE = 3  # 심층 분석을 위해 배치 사이즈 축소 (5 -> 3)
+BATCH_SIZE = 1  # 개별 처리 (기사 하나씩 분석)
 

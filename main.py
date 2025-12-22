@@ -46,11 +46,8 @@ def main():
         print("Error: Email credentials are missing.")
         sys.exit(1)
     
-    # 타겟 기사 추적
-    from src.collector import TARGET_ARTICLE_TITLE
-    
-    def is_target_article(title: str) -> bool:
-        return TARGET_ARTICLE_TITLE.lower() in title.lower()
+    # Gemini 모델 버전 출력
+    print(f"\n[INFO] Using Gemini Model: {settings.GEMINI_MODEL_NAME}")
     
     # 1. News Collection
     print("\n[Step 1] Collecting News...")
@@ -59,18 +56,6 @@ def main():
         collector = NewsCollector()
         news_list = collector.collect(lookback_hours=lookback_hours) 
         print(f"\nTotal News Collected: {len(news_list)}")
-        
-        # 타겟 기사 확인
-        target_found_in_collection = False
-        for idx, news in enumerate(news_list):
-            if is_target_article(news['title']):
-                target_found_in_collection = True
-                print(f"\n[TRACK] Step 1: Target article found at index {idx}")
-                print(f"[TRACK] Step 1: Title: {news['title']}")
-                break
-        
-        if not target_found_in_collection:
-            print(f"[WARNING] Step 1: Target article NOT found in collection!")
         
         if not news_list:
             print("No news found today. Exiting.")
@@ -85,24 +70,10 @@ def main():
     analyzed_news = []
     try:
         analyst = NewsAnalyst()
-        # settings.BATCH_SIZE (기본 3) 사용
-        batch_size = getattr(settings, 'BATCH_SIZE', 3)
+        # settings.BATCH_SIZE 사용 (현재는 개별 처리, 배치 크기 1)
+        batch_size = getattr(settings, 'BATCH_SIZE', 1)
         analyzed_news = analyst.analyze_all(news_list, batch_size=batch_size)
         print(f"\nSuccessfully analyzed {len(analyzed_news)} items.")
-        
-        # 타겟 기사 분석 결과 확인
-        target_found_in_analyzed = False
-        for idx, news in enumerate(analyzed_news):
-            if is_target_article(news.get('title', '')):
-                target_found_in_analyzed = True
-                print(f"\n[TRACK] Step 2: Target article found in analyzed_news at index {idx}")
-                print(f"[TRACK] Step 2: Has title_korean: {bool(news.get('title_korean'))}")
-                print(f"[TRACK] Step 2: Has core_summary: {bool(news.get('core_summary'))}")
-                print(f"[TRACK] Step 2: Has detailed_explanation: {bool(news.get('detailed_explanation'))}")
-                break
-        
-        if not target_found_in_analyzed:
-            print(f"[ERROR] Step 2: Target article NOT found in analyzed_news!")
             
     except Exception as e:
         print(f"Error during analysis: {e}")
@@ -116,20 +87,9 @@ def main():
         top5_articles = curator.select_top_articles(analyzed_news)
         
         print(f"\nSelected {len(top5_articles)} Top Articles:")
-        target_in_top5 = False
         for idx, article in enumerate(top5_articles):
             title = article.get('title_korean', article['title'])
             print(f"  [{idx+1}] {title}")
-            if is_target_article(article.get('title', '')):
-                target_in_top5 = True
-                print(f"\n[TRACK] Step 3: Target article is in Top 5!")
-                print(f"[TRACK] Step 3: Position: {idx+1}")
-                print(f"[TRACK] Step 3: title_korean: {title}")
-                print(f"[TRACK] Step 3: Has core_summary: {bool(article.get('core_summary'))}")
-                print(f"[TRACK] Step 3: Has detailed_explanation: {bool(article.get('detailed_explanation'))}")
-        
-        if not target_in_top5:
-            print(f"[TRACK] Step 3: Target article is NOT in Top 5")
             
     except Exception as e:
         print(f"Error during curation: {e}")

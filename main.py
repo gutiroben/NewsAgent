@@ -46,6 +46,9 @@ def main():
         print("Error: Email credentials are missing.")
         sys.exit(1)
     
+    # Gemini 모델 버전 출력
+    print(f"\n[INFO] Using Gemini Model: {settings.GEMINI_MODEL_NAME}")
+    
     # 1. News Collection
     print("\n[Step 1] Collecting News...")
     news_list = []

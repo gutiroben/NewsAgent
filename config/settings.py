@@ -5,7 +5,7 @@ load_dotenv()
 
 # Gemini API Settings
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL_NAME = "gemini-3-flash-preview"  # User requested version
+GEMINI_MODEL_NAME = "gemini-2.5-flash"  # User requested version
 
 # Email Settings
 EMAIL_SENDER = os.getenv("EMAIL_SENDER")
